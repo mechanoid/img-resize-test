@@ -1,24 +1,23 @@
-var ImgResizer = function(imgWrapper, siblings, options) {
-  this.imgWrapper = imgWrapper;
-  this.img = this.imgWrapper.find('img');
-  this.siblings = siblings || [];
+var ImgResizer = function(contentWrapper, img, options) {
+  this.contentWrapper = contentWrapper;
+  this.img = img;
   this.options = options || {};
-  this.offset = this.options.offset || 0;
-  this.siblingsHeight = 0;
-  this.imgWrapperHeight = 0;
-  this.imgMarginBottom = 0;
-  this.minImageHeight = this.options.minImageHeight || 0;
 
-  console.log("IMG:", this.img);
-  console.log("Siblings:", this.siblings);
-  console.log("Options:", this.options);
+  this.minImageHeight = this.options.minImageHeight || 150;
+
+  this.frameHeight = 0;
+  this.offsets = this.options.additionalOffsets || [];
+  this.offset = 0;
+  this.contentOffset = 0;
+  this.contentHeight = 0;
 };
 
 ImgResizer.prototype.debug = function() {
-  console.log("__DEBUG__");
   console.log("frameHeight", this.frameHeight);
-  console.log("siblingsHeight", this.siblingsHeight);
-  console.log("imgWrapperHeight", this.imgWrapperHeight);
+  console.log("offset", this.offset);
+  console.log("content offset", this.contentOffset);
+  console.log("content height", this.contentHeight);
+  console.log("content bottom line", this.contentBottomLine);
   return this;
 };
 
@@ -27,14 +26,20 @@ ImgResizer.prototype.resolveFrameHeight = function() {
   return this;
 };
 
-ImgResizer.prototype.resolveSiblingsHeight = function() {
+ImgResizer.prototype.resolveOffset = function() {
   var i = 0;
 
-  for (i; i < this.siblings.length; i++) {
-    console.log(this.siblings[i].outerHeight(true));
-    this.siblingsHeight += this.siblings[i].outerHeight(true);
+  for (i; i < this.offsets.length; i++) {
+    this.offset += this.offsets[i].outerHeight(true);
   }
 
+  return this;
+};
+
+ImgResizer.prototype.resolveContentDimensions = function() {
+  this.contentHeight = this.contentWrapper.outerHeight(true);
+  this.contentOffset = this.contentWrapper.offset().top;
+  this.contentBottomLine = this.contentHeight + this.contentOffset;
   return this;
 };
 
@@ -45,13 +50,11 @@ ImgResizer.prototype.resolveImgHeight = function() {
 };
 
 ImgResizer.prototype.adjustImgHeight = function() {
-  var newHeight =  this.frameHeight - this.offset - this.siblingsHeight - this.imgWrapperMarginBottom;
-
+  var newHeight =  this.frameHeight - this.contentBottomLine - this.offset;
+  console.log(this.frameHeight, this.contentBottomLine, this.offset);
   if (newHeight < this.minImageHeight) {
-    console.log('hide');
-    this.imgWrapper.hide();
+    this.img.hide();
   } else {
-    console.log('resize to', newHeight);
     this.img.css('max-height', newHeight + 'px')
   }
 
@@ -61,17 +64,13 @@ ImgResizer.prototype.adjustImgHeight = function() {
 ImgResizer.prototype.run = function() {
   this
   .resolveFrameHeight()
-  .resolveSiblingsHeight()
-  .resolveImgHeight()
-  .adjustImgHeight();
+  .resolveOffset()
+  .resolveContentDimensions()
+  .adjustImgHeight()
+  ;
 
   return this;
 };
 
-var imgWrapper = $('.img-wrapper');
-var columns = $('.columns');
-var table = $('.table');
-var siblings = [columns, table];
-
-var resizer = new ImgResizer(imgWrapper, siblings, { offset: 125 });
+var resizer = new ImgResizer($('.content'), $('img.dispensable'), { additionalOffsets: [$('footer')]});
 resizer.run().debug();
